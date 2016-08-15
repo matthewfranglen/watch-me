@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -e -u
+
+readonly COMMAND=`readlink -f "${0}"`
+readonly ROOT_FOLDER=`dirname "${COMMAND}"`
+readonly IMAGES_FOLDER="${ROOT_FOLDER}/images"
+readonly CURRENT_FOLDER="${PWD}"
+readonly EVENTS=modify,attrib,close_write,move,create,delete
+
+main () {
+    local last_status=0
+
+    while wait_until_change "${@}"
+    do
+        if mvn clean test
+        then
+            if [ "${last_status}" -ne 0 ]
+            then
+                show_success_status
+            fi
+            last_status=0
+        else
+            show_failure_status
+            last_status=1
+        fi
+    done
+
+}
+
+wait_until_change () {
+    if ! all_paths_exist "${@}"
+    then
+        return 1
+    fi
+
+    if has_folder "${@}"
+    then
+        inotifywait --recursive --event ${EVENTS} "${@}"
+    else
+        inotifywait --event ${EVENTS} "${@}"
+    fi
+}
+
+show_success_status () {
+    notify-send --icon="${IMAGES_FOLDER}/success.png" SUCCESS
+}
+
+show_failure_status () {
+    notify-send --icon="${IMAGES_FOLDER}/failure.png" FAILURE
+}
+
+all_paths_exist () {
+    for file in "${@}"
+    do
+        if [ ! -e "${file}" ]
+        then
+            echo "Path does not exist: ${file}" >&2
+            return 1
+        fi
+    done
+    return 0
+}
+
+has_folder () {
+    for file in "${@}"
+    do
+        if [ -d "${file}" ]
+        then
+            return 0
+        fi
+    done
+    return 1
+}
+
+main "${@}"
+
+# vim: set ai et sw=4 syntax=sh :
