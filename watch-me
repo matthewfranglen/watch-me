@@ -43,10 +43,12 @@ wait_until_change () {
 }
 
 show_success_status () {
+    killall notify-osd >/dev/null 2>&1
     notify-send --icon="${IMAGES_FOLDER}/success.png" SUCCESS
 }
 
 show_failure_status () {
+    killall notify-osd >/dev/null 2>&1
     notify-send --icon="${IMAGES_FOLDER}/failure.png" FAILURE
 }
 
